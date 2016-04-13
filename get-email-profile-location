@@ -1,0 +1,180 @@
+<?php
+session_start();
+require_once __DIR__ . '/src/Facebook/autoload.php';
+
+$fb = new Facebook\Facebook([
+  'app_id' => 'APP_ID',
+  'app_secret' => 'APP_SECRET',
+  'default_graph_version' => 'v2.5',
+  ]);
+
+?>
+
+<!DOCTYPE html>
+<html>
+<body>
+
+<?php
+
+$helper = $fb->getRedirectLoginHelper();
+
+$permissions = ['email','user_birthday', 'user_location', 'user_website']; // optional
+	
+try {
+	if (isset($_SESSION['localhost_app_token'])) {
+		$accessToken = $_SESSION['localhost_app_token'];
+	} else {
+  		$accessToken = $helper->getAccessToken();
+	}
+} catch(Facebook\Exceptions\FacebookResponseException $e) {
+ 	// When Graph returns an error
+ 	echo 'Graph returned an error: ' . $e->getMessage();
+
+  	exit;
+} catch(Facebook\Exceptions\FacebookSDKException $e) {
+ 	// When validation fails or other local issues
+	echo 'Facebook SDK returned an error: ' . $e->getMessage();
+  	exit;
+ }
+
+if (isset($accessToken)) {
+	if (isset($_SESSION['localhost_app_token'])) {
+		$fb->setDefaultAccessToken($_SESSION['localhost_app_token']);
+	} else {
+		// getting short-lived access token
+		$_SESSION['localhost_app_token'] = (string) $accessToken;
+
+	  	// OAuth 2.0 client handler
+		$oAuth2Client = $fb->getOAuth2Client();
+
+		// Exchanges a short-lived access token for a long-lived one
+		$longLivedAccessToken = $oAuth2Client->getLongLivedAccessToken($_SESSION['localhost_app_token']);
+
+		$_SESSION['localhost_app_token'] = (string) $longLivedAccessToken;
+
+		// setting default access token to be used in script
+		$fb->setDefaultAccessToken($_SESSION['localhost_app_token']);
+	}
+
+	// redirect the user back to the same page if it has "code" GET variable
+	if (isset($_GET['code'])) {
+		header('Location: ./');
+	}
+
+	// getting basic info about user
+	try { 	
+		$requestPicture = $fb->get('/me/picture?redirect=false&height=300'); //getting user picture
+		$profile_request = $fb->get('/me/?fields=email,name,first_name,last_name,birthday,website,location');
+		$picture = $requestPicture->getGraphUser();
+		$profile = $profile_request->getGraphNode()->asArray();
+	} catch(Facebook\Exceptions\FacebookResponseException $e) {
+		// When Graph returns an error
+		echo 'Graph returned an error: ' . $e->getMessage();
+		session_destroy();
+		// redirecting user back to app login page
+		header("Location: ./");
+		exit;
+	} catch(Facebook\Exceptions\FacebookSDKException $e) {
+		// When validation fails or other local issues
+		echo 'Facebook SDK returned an error: ' . $e->getMessage();
+		exit;
+	}
+	
+	// showing picture on the screen
+	//echo "<img src='".$picture['url']."'/>"; 
+	//echo "</br>";
+	
+	//echo $profile['email'] ;
+	//echo "</br>";
+	// printing $profile array on the screen which holds the basic info about user
+	//echo $profile['birthday']->format('d-m-Y') ;
+	//echo "</br>";
+	echo $profile['website'] ;
+	//echo "</br>";
+	//echo $profile['location']['name'];
+?>
+  	
+  		<canvas id="myCanvas" width="600" height="450" style="border:1px solid #d3d3d3;">
+		Your browser does not support the HTML5 canvas tag.</canvas>
+		
+	<script>
+		var c = document.getElementById("myCanvas");
+		var ctx = c.getContext("2d");
+		
+		var image1 = new Image();
+		image1.src = "http://apps.sanjoybijoy.com/img/blue.png";
+		ctx.drawImage(image1, 0, 0, 600, 450);
+		ctx.globalCompositeOperation = "source-over";
+		
+		// date of birth
+		
+		ctx.font = "20px Arial";
+		ctx.fillStyle = "red";
+		ctx.textAlign = "";
+		//ctx.strokeText("Stroke text",300,80);
+		ctx.fillText("Date of Birth :",200,130);
+		ctx.globalCompositeOperation = "source-over";
+		
+		ctx.font = "20px Arial";
+		ctx.fillStyle = "red";
+		ctx.textAlign = "";
+		//ctx.strokeText("Stroke text",300,80);
+		ctx.fillText("<?php echo $profile['birthday']->format('d-m-Y') ; ?>",350,130);
+		ctx.globalCompositeOperation = "source-over";
+		
+		// end date of birth
+		
+		// start email
+		ctx.font = "20px Arial";
+		ctx.fillStyle = "red";
+		ctx.textAlign = "";
+		//ctx.strokeText("Stroke text",300,80);
+		ctx.fillText("Email :",200,180);
+		ctx.globalCompositeOperation = "source-over";
+		
+		ctx.font = "20px Arial";
+		ctx.fillStyle = "red";
+		ctx.textAlign = "";
+		//ctx.strokeText("Stroke text",300,80);
+		ctx.fillText("<?php echo $profile['email'] ; ?>",300,180);
+		ctx.globalCompositeOperation = "source-over";
+		
+		// emd email
+		
+		ctx.font = "20px Arial";
+		ctx.fillStyle = "red";
+		ctx.textAlign = "";
+		//ctx.strokeText("Stroke text",300,80);
+		ctx.fillText("Location :",200,230);
+		ctx.globalCompositeOperation = "source-over";
+		
+		ctx.font = "20px Arial";
+		ctx.fillStyle = "red";
+		ctx.textAlign = "";
+		//ctx.strokeText("Stroke text",300,80);
+		ctx.fillText("<?php echo $profile['location']['name']; ?>",300,230);
+		ctx.globalCompositeOperation = "source-over";
+		
+		var image2 = new Image();
+		
+		image2.src = '<?php echo $picture['url'] ; ?>';
+		
+		ctx.drawImage(image2, 0,0, 160, 250);
+		ctx.globalCompositeOperation = "source-over";
+		
+		
+
+	</script>
+  	
+  	
+  <?php	
+  	// Now you can redirect to another page and use the access token from $_SESSION['localhost_app_token']
+} else {
+	// replace your website URL same as added in the developers.facebook.com/apps e.g. if you used http instead of https and you used non-www version or www version of your website then you must add the same here
+	$loginUrl = $helper->getLoginUrl('http://apps.sanjoybijoy.com/index.php/', $permissions);
+	echo '<a href="' . $loginUrl . '">Log in with Facebook!</a>';
+}
+?>
+
+</body>
+</html>
