@@ -1,0 +1,250 @@
+<?php
+session_start();
+require_once __DIR__ . '/src/Facebook/autoload.php';
+
+$fb = new Facebook\Facebook([
+  'app_id' => '1552467261720586',
+  'app_secret' => '696036cefe42a0f4401cb841c158c045',
+  'default_graph_version' => 'v2.5',
+  ]);
+
+
+
+ 			$t=time();
+			$date = (date("Y-m-d"));
+			
+			 $dt1 = $date.'-'.$t.'.jpg';
+			 
+			 $t2 =  $t +1;
+			 $dt2 = $date.'-'.$t2.'.jpg';
+			 
+			 $t3 = $t +2;
+			 $dt3 = $date.'-'.$t3.'.jpg';
+			
+			 $t4 = $t + 3;
+			 $dt4 = $date.'-'.$t4.'.jpg';
+			 
+			$GLOBALS['test'] = '1000.jpg';
+
+
+?>
+
+<!DOCTYPE html>
+<html>
+
+<head>
+<title>Certificate app</title>
+
+        <meta property="og:url"           content="http://apps.sanjoybijoy.com/app/php-index.php" />
+	<meta property="og:type"          content="website" />
+	<meta property="og:title"         content="My Website Title" />
+	<meta property="og:description"   content="Our new new company description" />
+	<meta property="og:image"       content=<?php echo '"http://apps.sanjoybijoy.com/app/saved/'.$test.'" ';?> />
+
+
+
+
+	
+</head>
+
+<body>
+
+
+
+
+<div id="fb-root"></div>
+<script>(function(d, s, id) {
+  var js, fjs = d.getElementsByTagName(s)[0];
+  if (d.getElementById(id)) return;
+  js = d.createElement(s); js.id = id;
+  js.src = "//connect.facebook.net/en_US/sdk.js#xfbml=1&version=v2.7&appId=1552467261720586";
+  fjs.parentNode.insertBefore(js, fjs);
+}(document, 'script', 'facebook-jssdk'));</script>
+
+<?php
+
+$helper = $fb->getRedirectLoginHelper();
+
+$permissions = ['user_friends','user_birthday', 'user_location']; // optional
+	
+try {
+	if (isset($_SESSION['localhost_app_token'])) {
+		$accessToken = $_SESSION['localhost_app_token'];
+	} else {
+  		$accessToken = $helper->getAccessToken();
+	}
+} catch(Facebook\Exceptions\FacebookResponseException $e) {
+ 	// When Graph returns an error
+ 	echo 'Graph returned an error: ' . $e->getMessage();
+
+  	exit;
+} catch(Facebook\Exceptions\FacebookSDKException $e) {
+ 	// When validation fails or other local issues
+	 echo 'Facebook SDK returned an error: ' . $e->getMessage();
+  	exit;
+ }
+
+if (isset($accessToken)) {
+	if (isset($_SESSION['localhost_app_token'])) {
+		$fb->setDefaultAccessToken($_SESSION['localhost_app_token']);
+	} else {
+		// getting short-lived access token
+		$_SESSION['localhost_app_token'] = (string) $accessToken;
+
+	  	// OAuth 2.0 client handler
+		$oAuth2Client = $fb->getOAuth2Client();
+
+		// Exchanges a short-lived access token for a long-lived one
+		$longLivedAccessToken = $oAuth2Client->getLongLivedAccessToken($_SESSION['localhost_app_token']);
+
+		$_SESSION['localhost_app_token'] = (string) $longLivedAccessToken;
+
+		// setting default access token to be used in script
+		$fb->setDefaultAccessToken($_SESSION['localhost_app_token']);
+	}
+
+	// redirect the user back to the same page if it has "code" GET variable
+	if (isset($_GET['code'])) {
+		header('Location: ./');
+	}
+
+	// getting basic info about user
+	try { 	
+		$requestPicture = $fb->get('/me/picture?redirect=false&height=300'); //getting user picture
+		$profile_request = $fb->get('/me/?fields=email,name,first_name,last_name,birthday,website,location');
+		$requestFriends = $fb->get('/me/taggable_friends?fields=name');
+		$friends = $requestFriends->getGraphEdge();
+		$picture = $requestPicture->getGraphUser();
+		$profile = $profile_request->getGraphNode()->asArray();
+	} catch(Facebook\Exceptions\FacebookResponseException $e) {
+		// When Graph returns an error
+		echo 'Graph returned an error: ' . $e->getMessage();
+		session_destroy();
+		// redirecting user back to app login page
+		header("Location: ./");
+		exit;
+	} catch(Facebook\Exceptions\FacebookSDKException $e) {
+		// When validation fails or other local issues
+		echo 'Facebook SDK returned an error: ' . $e->getMessage();
+		exit;
+	}
+	
+	// showing picture on the screen
+	//echo "<img src='".$picture['url']."'/>"; 
+	//echo "</br>";
+	
+	//echo $profile['email'] ;
+	//echo "</br>";
+	
+	//echo $profile['first_name'] ;
+	//echo "</br>";
+	
+	//echo $profile['user_friends'] ;
+	//echo "</br>";
+	
+	// printing $profile array on the screen which holds the basic info about user
+	//echo $profile['birthday']->format('d-m-Y') ;
+	//echo "</br>";
+	//echo $profile['website'] ;
+	//echo "</br>";
+	//echo $profile['location']['name'];
+	
+	if ($fb->next($friends)) {
+		$allFriends = array();
+		$friendsArray = $friends->asArray();
+		$allFriends = array_merge($friendsArray, $allFriends);
+		while ($friends = $fb->next($friends)) {
+			$friendsArray = $friends->asArray();
+			$allFriends = array_merge($friendsArray, $allFriends);
+		}
+		foreach ($allFriends as $key) {
+			//echo $key['name'] . "<br>";
+			$key['name'] . "<br>";
+		}
+		//echo count($allFriends);
+		
+	} else {
+		$allFriends = $friends->asArray();
+		$totalFriends = count($allFriends);
+		foreach ($allFriends as $key) {
+			echo $key['name'] . "<br>";
+		}
+	}
+	
+	
+	
+	
+?>
+  	<h2>Test App</h2>
+  	
+  	
+		<?php
+			
+			include('SimpleImage/src/abeautifulsite/SimpleImage.php');
+			
+			// PHP GD library and SimpleImage platform
+ 
+			 // Image name creation
+			 
+			echo $_SERVER['SERVER_NAME'];
+			
+			
+			 
+			echo $dt1;
+			
+			echo '</br>';
+			
+			echo $dt2;
+			
+			 
+			 try {
+			    $img = new abeautifulsite\SimpleImage();
+			    
+			    $img->load('img/certificate.jpg')->resize(900, 630)->save('saved/'.$dt1);
+			    
+			     $img->text( $profile['first_name']." " .  $profile['last_name'], 'fonts/Monotype-Corsiva.ttf', 20, '#000', 'left top', -200, -82)->save('saved/'.$dt1);
+			    
+			} catch(Exception $e) {
+			    echo 'Error: ' . $e->getMessage();
+			}
+			
+			 try {
+			    $img = new abeautifulsite\SimpleImage();
+			    
+			    $img->load($picture['url'])->resize(120, 150)->save('saved/'.$dt2);
+			    
+			     
+			} catch(Exception $e) {
+			    echo 'Error: ' . $e->getMessage();
+			}
+			
+			 try {
+			    $img = new abeautifulsite\SimpleImage();
+			    
+			    $img->load('saved/'.$dt1)->overlay('saved/'.$dt2, 'top right', 1,-100,100)->save('saved/'.$test);
+			    
+			    
+			} catch(Exception $e) {
+			    echo 'Error: ' . $e->getMessage();
+			}
+			
+			echo '<img src="http://apps.sanjoybijoy.com/app/saved/'.$test.'">';
+			
+			
+	?>		  	
+			  	</br>
+			  	
+			  	<div class="fb-share-button" data-href="http://apps.sanjoybijoy.com/app/php-index.php" data-layout="button_count" data-size="large" data-mobile-iframe="true"><a class="fb-xfbml-parse-ignore" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http%3A%2F%2Fapps.sanjoybijoy.com%2Fapp%2Fphp-index.php&amp;src=sdkpreparse">Share</a></div>
+				
+			  	
+  <?php	
+  	// Now you can redirect to another page and use the access token from $_SESSION['localhost_app_token']
+} else {
+	// replace your website URL same as added in the developers.facebook.com/apps e.g. if you used http instead of https and you used non-www version or www version of your website then you must add the same here
+	$loginUrl = $helper->getLoginUrl('http://apps.sanjoybijoy.com/app/php-index.php/', $permissions);
+	echo '<a href="' . $loginUrl . '">Log in with Facebook!</a>';
+}
+?>
+
+</body>
+</html>
